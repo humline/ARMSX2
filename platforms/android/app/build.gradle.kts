@@ -241,14 +241,13 @@ android {
     }
     // Both distribution flavors use SAF-scoped storage. The GitHub flavor adds
     // the self-updater permission in src/github/AndroidManifest.xml; the Play
-    // flavor does not. applicationId is left
-    // to defaultConfig (driven by -Parmsx2.applicationId) so both flavors honor
+    // flavor does not. applicationId is left to defaultConfig (driven by
+    // -Parmsx2.applicationId) so both flavors honor
     // the release/AAB pipeline's CLI override.
     flavorDimensions += "store"
     productFlavors {
         create("github") {
             dimension = "store"
-            buildConfigField("boolean", "STORAGE_ALL_FILES", "false")
             // In-app GitHub-release updater. Github flavor only — Play forbids self-updating,
             // so the real updater + REQUEST_INSTALL_PACKAGES live in src/github and this stays
             // false for play (which uses the src/play no-op stub).
@@ -263,7 +262,6 @@ android {
         }
         create("play") {
             dimension = "store"
-            buildConfigField("boolean", "STORAGE_ALL_FILES", "false")
             buildConfigField("boolean", "IN_APP_UPDATER", "false")
             buildConfigField("boolean", "LSFG", "false")
             externalNativeBuild { cmake { arguments += "-DARMSX2_ENABLE_LSFG=OFF" } }

@@ -10,7 +10,7 @@ OUTPUT_DIR="$(mkdir -p "$OUTPUT_DIR" && cd "$OUTPUT_DIR" && pwd)"
 NERDCTL="${NERDCTL:-nerdctl}"
 BUILDER_IMAGE="${ARMSX2_ANDROID_BUILDER_IMAGE:-armsx2-android-builder:local}"
 ANDROID_SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
-GRADLE_CACHE="${GRADLE_CACHE:-$HOME/.gradle}"
+GRADLE_CACHE="$ANDROID_DIR/build/nerdctl-gradle-home"
 VERSION_CODE="${VC:-1088}"
 VERSION_NAME="${VN:-2.6.1}"
 
@@ -38,7 +38,6 @@ command -v "$NERDCTL" >/dev/null 2>&1 || {
 BUILD_CONTEXT="$(mktemp -d "${TMPDIR:-/tmp}/armsx2-nerdctl.XXXXXX")"
 trap 'rm -rf "$BUILD_CONTEXT"' EXIT
 mkdir -p "$BUILD_CONTEXT/source" "$GRADLE_CACHE"
-mkdir -p "$GRADLE_CACHE/caches" "$GRADLE_CACHE/wrapper/dists"
 
 # Build from the current working tree, but do not copy VCS metadata or local
 # signing material into the builder container.
@@ -79,8 +78,7 @@ echo "Building GitHub (open-source) and Play release APKs..."
 	--env VN="$VERSION_NAME" \
 	--volume "$BUILD_CONTEXT/source:/workspace:rw" \
 	--volume "$ANDROID_SDK:/android-sdk:rw" \
-	--volume "$GRADLE_CACHE/caches:/gradle/caches:rw" \
-	--volume "$GRADLE_CACHE/wrapper/dists:/gradle/wrapper/dists:rw" \
+	--volume "$GRADLE_CACHE:/gradle:rw" \
 	--volume "$OUTPUT_DIR:/output:rw" \
 	--workdir /workspace/platforms/android \
 	"$BUILDER_IMAGE" \

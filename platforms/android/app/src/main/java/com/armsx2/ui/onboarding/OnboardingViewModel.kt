@@ -86,29 +86,9 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                 MainActivityRuntime.prefs.edit().putString("systemDir", path).apply()
                 state.value = state.value.copy(systemLocation = location, error = null)
             }
-            // Custom is driven by the UI's optional SAF folder picker — the resolved
-            // POSIX path arrives via selectCustomStorage.
+            // Keep a legacy custom root unchanged when the wizard restores it.
             StorageLocation.Custom -> {}
         }
-    }
-
-    /** Point the data root at a user-picked, writable folder.
-     *  [path] is a resolved POSIX path under shared storage; the native core writes
-     *  memcards / saves / configs there. */
-    fun selectCustomStorage(path: String) {
-        if (path.isBlank()) {
-            state.value = state.value.copy(error = "Couldn't resolve that folder.")
-            return
-        }
-        // Check now, while the player can pick again. Unchecked, an unwritable folder was only
-        // found out at the next launch.
-        if (!MainActivityRuntime.validateSystemDirWritable(path)) {
-            state.value = state.value.copy(error = com.armsx2.i18n.I18n.get("setup.systemDir.error.tryAnother"))
-            return
-        }
-        MainActivityRuntime.systemDir.value = path
-        MainActivityRuntime.prefs.edit().putString("systemDir", path).apply()
-        state.value = state.value.copy(systemLocation = StorageLocation.Custom, error = null)
     }
 
     fun importBios(uri: Uri) {

@@ -84,50 +84,6 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = viewModel()) {
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let(viewModel::addGameFolder)
     }
-    // Optional custom data-root selected through SAF. Distribution flavors which
-    // do not expose custom roots keep this flow hidden.
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val customFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        uri?.let { u ->
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    u,
-                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
-            }
-            com.armsx2.runtime.MainActivityRuntime.resolveTreeUriToPosix(u.toString())
-                ?.let(viewModel::selectCustomStorage)
-        }
-    }
-    val allFilesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (com.armsx2.BuildConfig.STORAGE_ALL_FILES &&
-            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
-            android.os.Environment.isExternalStorageManager()
-        ) {
-            customFolderPicker.launch(null)
-        }
-    }
-    val onCustomStorage: () -> Unit = {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
-            !android.os.Environment.isExternalStorageManager()
-        ) {
-            val manageIntent = android.content.Intent(
-                android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                android.net.Uri.parse("package:${context.packageName}"),
-            )
-            runCatching { allFilesLauncher.launch(manageIntent) }.onFailure {
-                runCatching {
-                    allFilesLauncher.launch(
-                        android.content.Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION),
-                    )
-                }
-            }
-        } else {
-            customFolderPicker.launch(null)
-        }
-    }
-
     LaunchedEffect(Unit) { viewModel.load() }
 
     ArmsBackdrop {
@@ -182,7 +138,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = viewModel()) {
                             PageViewport(compact = false) {
                                 WizardPage(page, state, viewModel, biosPicker = {
                                     biosPicker.launch(null)
-                                }, folderPicker = { folderPicker.launch(null) }, onCustomStorage = onCustomStorage)
+                                }, folderPicker = { folderPicker.launch(null) })
                             }
                         }
                         NavigationBar(
@@ -222,7 +178,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = viewModel()) {
                         PageViewport(compact = true) {
                             WizardPage(page, state, viewModel, biosPicker = {
                                 biosPicker.launch(null)
-                            }, folderPicker = { folderPicker.launch(null) }, onCustomStorage = onCustomStorage)
+                            }, folderPicker = { folderPicker.launch(null) })
                         }
                     }
                     NavigationBar(
@@ -255,11 +211,10 @@ private fun WizardPage(
     viewModel: OnboardingViewModel,
     biosPicker: () -> Unit,
     folderPicker: () -> Unit,
-    onCustomStorage: () -> Unit,
 ) {
     when (page) {
         0 -> WelcomePage(compact = true)
-        1 -> StoragePage(state, compact = true, viewModel::selectStorage, onCustomStorage)
+        1 -> StoragePage(state, compact = true, viewModel::selectStorage)
         2 -> BiosPage(state, compact = true, onPick = biosPicker, onSelectBios = viewModel::selectBiosCandidate)
         3 -> GamesPage(state, folderPicker, viewModel::removeGameFolder)
         else -> ReadyPage(state, compact = true)
@@ -379,16 +334,15 @@ private fun StoragePage(
     state: OnboardingUiState,
     compact: Boolean,
     onSelect: (StorageLocation) -> Unit,
-    onCustom: () -> Unit,
 ) {
     SetupPage(str("setup.step.appData.title"), str("setup.step.appData.description.play")) {
         if (compact) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                StorageChoices(state, onSelect, onCustom)
+                StorageChoices(state, onSelect)
             }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                StorageChoices(state, onSelect, onCustom)
+                StorageChoices(state, onSelect)
             }
         }
     }
@@ -398,7 +352,6 @@ private fun StoragePage(
 private fun androidx.compose.foundation.layout.ColumnScope.StorageChoices(
     state: OnboardingUiState,
     onSelect: (StorageLocation) -> Unit,
-    onCustom: () -> Unit,
 ) {
     ChoiceCard(
         title = str("setup.storageChooser.internalShort"),
@@ -416,24 +369,12 @@ private fun androidx.compose.foundation.layout.ColumnScope.StorageChoices(
         onClick = { onSelect(StorageLocation.SdCard) },
         modifier = Modifier.fillMaxWidth(),
     )
-    // Optional custom folder, only exposed by builds that opt into this flow.
-    if (com.armsx2.BuildConfig.STORAGE_ALL_FILES) {
-        ChoiceCard(
-            title = str("setup.storageChooser.customShort"),
-            detail = str("setup.storageChooser.customSubtitle"),
-            glyph = "▦",
-            selected = state.systemLocation == StorageLocation.Custom,
-            onClick = onCustom,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
 }
 
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.StorageChoices(
     state: OnboardingUiState,
     onSelect: (StorageLocation) -> Unit,
-    onCustom: () -> Unit,
 ) {
     ChoiceCard(
         title = str("setup.storageChooser.internalShort"),
@@ -451,16 +392,6 @@ private fun androidx.compose.foundation.layout.RowScope.StorageChoices(
         onClick = { onSelect(StorageLocation.SdCard) },
         modifier = Modifier.weight(1f),
     )
-    if (com.armsx2.BuildConfig.STORAGE_ALL_FILES) {
-        ChoiceCard(
-            title = str("setup.storageChooser.customShort"),
-            detail = str("setup.storageChooser.customSubtitle"),
-            glyph = "▦",
-            selected = state.systemLocation == StorageLocation.Custom,
-            onClick = onCustom,
-            modifier = Modifier.weight(1f),
-        )
-    }
 }
 
 @Composable
