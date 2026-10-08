@@ -25,9 +25,11 @@ DEFAULT_VERSION_NAME="$(build_default versionName)"
 NDK_VERSION="$(build_default ndkVersion)"
 CMAKE_VERSION="$(build_default cmakeVersion)"
 COMPILE_SDK="$(build_default compileSdk)"
+GITHUB_APPLICATION_ID="$(build_default githubApplicationId)"
 VERSION_CODE="${VC:-$DEFAULT_VERSION_CODE}"
 VERSION_NAME="${VN:-$DEFAULT_VERSION_NAME}"
 APK_NAME_PATTERN="ARMSX2-__FLAVOR__-__PAGE__-vc${VERSION_CODE}-${VERSION_NAME}.apk"
+ANDROID_SDK_TMPFS_SIZE="${ANDROID_SDK_TMPFS_SIZE:-2g}"
 
 artifact_name() {
 	local name="$APK_NAME_PATTERN"
@@ -89,6 +91,14 @@ done
 	echo "error: PKG must be a valid Android application ID" >&2
 	exit 1
 }
+[[ "$GITHUB_APPLICATION_ID" =~ ^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$ ]] || {
+	echo "error: githubApplicationId must be a valid Android application ID" >&2
+	exit 1
+}
+[[ "$ANDROID_SDK_TMPFS_SIZE" =~ ^[1-9][0-9]*[kKmMgG]?$ ]] || {
+	echo "error: ANDROID_SDK_TMPFS_SIZE must be a positive size in bytes, k, m, or g" >&2
+	exit 1
+}
 
 BUILD_CONTEXT="$(mktemp -d "${TMPDIR:-/tmp}/armsx2-nerdctl.XXXXXX")"
 trap 'rm -rf "$BUILD_CONTEXT"' EXIT
@@ -130,7 +140,7 @@ done
 	--security-opt no-new-privileges \
 	--cap-drop ALL \
 	--read-only \
-	--tmpfs /android-sdk:rw,nosuid,nodev,size=2g \
+	--tmpfs "/android-sdk:rw,nosuid,nodev,size=$ANDROID_SDK_TMPFS_SIZE" \
 	--env ANDROID_HOME=/android-sdk \
 	--env ANDROID_SDK_ROOT=/android-sdk \
 	--env GRADLE_USER_HOME=/gradle \
@@ -138,6 +148,7 @@ done
 	--env VC="$VERSION_CODE" \
 	--env VN="$VERSION_NAME" \
 	--env PLAY_APPLICATION_ID="$PLAY_APPLICATION_ID" \
+	--env GITHUB_APPLICATION_ID="$GITHUB_APPLICATION_ID" \
 	--env APK_NAME_PATTERN="$APK_NAME_PATTERN" \
 	--volume "$BUILD_CONTEXT/source:/workspace:rw" \
 	--volume "$BUILD_CONTEXT/tmp:/tmp:rw" \
@@ -182,7 +193,7 @@ done
 			if [[ "$flavor" == Play ]]; then
 				application_id="$PLAY_APPLICATION_ID"
 			else
-				application_id=com.armsx2
+				application_id="$GITHUB_APPLICATION_ID"
 			fi
 			for page_size in 0x1000 0x4000; do
 				if [[ "$page_size" == 0x1000 ]]; then
@@ -215,10 +226,20 @@ done
 	'
 
 echo "Built APKs:"
+checksum_file() {
+	if command -v sha256sum >/dev/null 2>&1; then
+		sha256sum "$1"
+	elif command -v shasum >/dev/null 2>&1; then
+		shasum -a 256 "$1"
+	else
+		echo "error: sha256sum or shasum is required to verify APK outputs" >&2
+		return 1
+	fi
+}
 for flavor in github play; do
 	for page in 4k 16k; do
 		apk="$OUTPUT_DIR/$(artifact_name "$flavor" "$page")"
 		[[ -s "$apk" ]] || { echo "error: expected APK was not produced: $apk" >&2; exit 1; }
-		sha256sum "$apk"
+		checksum_file "$apk"
 	done
 done

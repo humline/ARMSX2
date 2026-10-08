@@ -3,12 +3,12 @@ PlayStation 2 Emulator for Android based on the work of [PCSX2](https://github.c
 
 ## App version
 
-The Android app version is configured in `app/build.gradle.kts` under
-`android.defaultConfig`:
+The Android app version and SDK toolchain defaults are configured in
+`android-build.properties`:
 
-```kotlin
-versionCode = providers.gradleProperty("armsx2.versionCode").orNull?.toInt() ?: 1088
-versionName = providers.gradleProperty("armsx2.versionName").orNull ?: "2.5.8"
+```properties
+versionCode=1088
+versionName=2.6.1
 ```
 
 Change `versionName` to the user-facing release version and increment the integer
@@ -40,7 +40,9 @@ under `build/nerdctl-apks/`. It uses debug signing (not suitable for release
 distribution), does not use PGO, and excludes local keystores/signing
 properties from the temporary build context. `android-build.properties` is the
 shared source for Gradle and shell build defaults; `VC` and `VN` override the
-version, and `PKG` overrides the Play application ID. Install the compile SDK,
+version, and `PKG` overrides the Play application ID. Set
+`ANDROID_SDK_TMPFS_SIZE` (default `2g`) to adjust the writable SDK metadata
+overlay size. Install the compile SDK,
 build-tools, platform-tools, NDK, and CMake versions listed there, with SDK
 licenses accepted. Host SDK packages are mounted read-only; a temporary
 writable SDK metadata overlay keeps build-time SDK changes inside the
