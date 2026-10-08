@@ -36,7 +36,7 @@ data class OnboardingUiState(
 enum class StorageLocation {
     Internal,
     SdCard,
-    // Retained to show legacy custom roots already saved by earlier versions.
+    // Retained to identify old roots; users can choose Internal or SD Card instead.
     Custom,
 }
 

@@ -336,6 +336,9 @@ private fun StoragePage(
     onSelect: (StorageLocation) -> Unit,
 ) {
     SetupPage(str("setup.step.appData.title"), str("setup.step.appData.description.play")) {
+        if (state.systemLocation == StorageLocation.Custom) {
+            HelpText(str("setup.storageChooser.legacyCustomWarning"))
+        }
         if (compact) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 StorageChoices(state, onSelect)

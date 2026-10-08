@@ -1881,6 +1881,7 @@ private val BASE_EN: Map<String, String> = mapOf(
     "setup.storageChooser.description" to "Internal lives in app-private storage (wiped on uninstall). SD Card creates ",
     "setup.storageChooser.internal" to "Internal (app-private)",
     "setup.storageChooser.customShort" to "Custom folder",
+    "setup.storageChooser.legacyCustomWarning" to "Your previous custom data folder may no longer be accessible. Choose Internal or SD Card for a new location; existing files are not copied.",
     "setup.storageChooser.internalShort" to "Internal",
     "setup.storageChooser.title" to "App data location",
     "setup.systemDir.appPrivateSubtitle" to "App-private Android/data folder",

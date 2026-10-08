@@ -28,7 +28,7 @@ one APK, signs it, and verifies 16K zip alignment. This keeps one distributable
 APK working correctly on both older 4K-page devices and newer 16K-page devices.
 
 To build per-page-size APKs for both the open-source and Play flavors in a
-Linux nerdctl/BuildKit environment, run:
+Linux/amd64 nerdctl/BuildKit environment, run:
 
 ```bash
 ANDROID_HOME="$HOME/Android/Sdk" tools/build-apks-nerdctl.sh
@@ -41,5 +41,7 @@ distribution), does not use PGO, and excludes local keystores/signing
 properties from the temporary build context. Version defaults are read from
 `app/build.gradle.kts`; `VC` and `VN` override them, and `PKG` overrides the
 Play application ID. Install the
-compile SDK, build-tools, NDK, and CMake versions configured in that Gradle
-file before running it. The SDK is mounted read-only in the build container.
+compile SDK, build-tools, platform-tools, NDK, and CMake versions configured in
+that Gradle file, with SDK licenses accepted. Host SDK packages are mounted
+read-only; a temporary writable SDK metadata overlay keeps build-time SDK
+changes inside the container.
