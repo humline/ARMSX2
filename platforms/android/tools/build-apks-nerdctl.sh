@@ -19,8 +19,9 @@ CMAKE_VERSION="$(sed -nE 's/.*version = "([0-9.]+)".*/\1/p' "$APP_GRADLE")"
 COMPILE_SDK="$(sed -nE 's/^[[:space:]]*compileSdk = ([0-9]+)$/\1/p' "$APP_GRADLE")"
 VERSION_CODE="${VC:-$DEFAULT_VERSION_CODE}"
 VERSION_NAME="${VN:-$DEFAULT_VERSION_NAME}"
-# Match the Play package id used by tools/build-play-aab.sh.
-PLAY_APPLICATION_ID="${PKG:-come.nanodata.armsx2}"
+# Share the Play package default with tools/build-play-aab.sh.
+DEFAULT_PLAY_APPLICATION_ID="$(sed -nE 's/^PKG="\$\{PKG:-([^}]+)\}"$/\1/p' "$ANDROID_DIR/tools/build-play-aab.sh")"
+PLAY_APPLICATION_ID="${PKG:-$DEFAULT_PLAY_APPLICATION_ID}"
 
 command -v "$NERDCTL" >/dev/null 2>&1 || {
 	echo "error: nerdctl is required (with its BuildKit builder configured)" >&2
@@ -34,8 +35,8 @@ command -v "$NERDCTL" >/dev/null 2>&1 || {
 	echo "error: Android SDK platforms and NDK must be installed under $ANDROID_SDK" >&2
 	exit 1
 }
-[[ -n "$DEFAULT_VERSION_CODE" && -n "$DEFAULT_VERSION_NAME" && -n "$NDK_VERSION" &&
-	-n "$CMAKE_VERSION" && -n "$COMPILE_SDK" ]] || {
+[[ -n "$DEFAULT_VERSION_CODE" && -n "$DEFAULT_VERSION_NAME" && -n "$DEFAULT_PLAY_APPLICATION_ID" &&
+	-n "$NDK_VERSION" && -n "$CMAKE_VERSION" && -n "$COMPILE_SDK" ]] || {
 	echo "error: could not read Android build defaults from $APP_GRADLE" >&2
 	exit 1
 }
@@ -133,6 +134,8 @@ done
 	"$BUILDER_IMAGE" \
 	bash -euc '
 		mkdir -p "$HOME"
+		apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+		[[ -x "$apksigner" ]] || { echo "error: apksigner is missing from the Android SDK" >&2; exit 1; }
 		for flavor in Github Play; do
 			flavor_lower="$(printf "%s" "$flavor" | tr "[:upper:]" "[:lower:]")"
 			if [[ "$flavor" == Play ]]; then
@@ -140,9 +143,6 @@ done
 			else
 				application_id=com.armsx2
 			fi
-			apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort | tail -n 1)"
-			[[ -x "$apksigner" ]] || { echo "error: apksigner is missing from the Android SDK" >&2; exit 1; }
-
 			for page_size in 0x1000 0x4000; do
 				if [[ "$page_size" == 0x1000 ]]; then
 					page_name=4k
