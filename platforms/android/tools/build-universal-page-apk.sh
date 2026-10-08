@@ -61,8 +61,8 @@ build_core() {
 	local page_size="$1"
 	local lib_name="$2"
 	local out_apk="$3"
-	# Sideload build = the `github` product flavor (adds MANAGE_EXTERNAL_STORAGE
-	# + STORAGE_ALL_FILES). Flavors qualify the task name and output path with
+	# Sideload build = the `github` product flavor. Both store flavors use
+	# SAF-scoped storage. Flavors qualify the task name and output path with
 	# the flavor, so this is assembleGithubDebug → apk/github/debug/. The Play
 	# AAB uses bundlePlayRelease instead (the play flavor stays SAF-only).
 	local built_apk="$ROOT_DIR/app/build/outputs/apk/github/debug/app-github-debug.apk"

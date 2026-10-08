@@ -7,6 +7,17 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+val armsx2AndroidBuildDefaultsFile = rootProject.file("android-build.properties")
+val armsx2AndroidBuildDefaults = Properties().apply {
+    if (!armsx2AndroidBuildDefaultsFile.isFile) {
+        throw GradleException("android-build.properties is missing.")
+    }
+    armsx2AndroidBuildDefaultsFile.inputStream().use(::load)
+}
+fun armsx2AndroidBuildDefault(name: String): String =
+    armsx2AndroidBuildDefaults.getProperty(name)?.takeIf { it.isNotBlank() }
+        ?: throw GradleException("android-build.properties is missing '$name'.")
+
 val armsx2NativeLibName = providers.gradleProperty("armsx2.nativeLibName").orElse("emucore_4k")
 val armsx2Pgo = providers.gradleProperty("armsx2.pgo").orElse("none") // none | generate | optimize
 val armsx2PgoProfile = providers.gradleProperty("armsx2.pgoProfile").orElse("") // abs path to merged .profdata (optimize)
@@ -23,7 +34,7 @@ val armsx2MinSdk = providers.gradleProperty("armsx2.minSdk").orElse("26")
 // Pinned, not left to AGP's default: the two targets must differ ONLY where we say they do, and
 // an NDK that drifts under one of them makes an A/B meaningless. 29 is what the release targets
 // and pgo/armsx2.profdata use.
-val armsx2NdkVersion = providers.gradleProperty("armsx2.ndkVersion").orElse("29.0.14206865")
+val armsx2NdkVersion = providers.gradleProperty("armsx2.ndkVersion").orElse(armsx2AndroidBuildDefault("ndkVersion"))
 // Empty = let BuildParameters.cmake choose (armv8-a). The v8.2 targets pass an explicit
 // -march; FEAT_FP16 and FEAT_DotProd are OPTIONAL at v8.2, so they must be named, not implied.
 val armsx2March = providers.gradleProperty("armsx2.march").orElse("")
@@ -37,10 +48,12 @@ val armsx2March = providers.gradleProperty("armsx2.march").orElse("")
 // BuildParameters.cmake's escape hatch tests CMAKE_CXX_FLAGS for "-march=", and the flag has to
 // be a separate token on the command line regardless.
 val armsx2MarchExtra = providers.gradleProperty("armsx2.marchExtra").orElse("")
+val armsx2NativeHardeningFlags = "-fstack-protector-strong"
 // DIAGNOSTIC ONLY (-Parmsx2.recTestHooks=true): compiles the EERecFallback opcode-group
 // interpreter bisect into the EE recompiler. Never set for a shipped build.
 val armsx2RecTestHooks = providers.gradleProperty("armsx2.recTestHooks").orElse("false")
-val armsx2ApplicationId = providers.gradleProperty("armsx2.applicationId").orElse("com.armsx2")
+val armsx2ApplicationId = providers.gradleProperty("armsx2.applicationId")
+    .orElse(armsx2AndroidBuildDefault("githubApplicationId"))
 // Distribution channel, baked into BuildConfig so the app knows which release stream it belongs to
 // without guessing from the version string. "nightly" builds ship a distinct applicationId and
 // label (see ci-nightly-dualcore.sh) so they install alongside the stable app instead of replacing
@@ -105,7 +118,7 @@ val armsx2DiscordSdkDir: String? =
 
 android {
     namespace = "com.armsx2"
-    compileSdk = 37
+    compileSdk = armsx2AndroidBuildDefault("compileSdk").toInt()
     ndkVersion = armsx2NdkVersion.get()
 
     defaultConfig {
@@ -113,8 +126,9 @@ android {
         manifestPlaceholders["appLabel"] = armsx2AppLabel.get()
         minSdk = armsx2MinSdk.get().toInt()
         targetSdk = 37
-        versionCode = providers.gradleProperty("armsx2.versionCode").orNull?.toInt() ?: 1088
-        versionName = providers.gradleProperty("armsx2.versionName").orNull ?: "2.6.1"
+        versionCode = providers.gradleProperty("armsx2.versionCode").orNull?.toInt()
+            ?: armsx2AndroidBuildDefault("versionCode").toInt()
+        versionName = providers.gradleProperty("armsx2.versionName").orNull ?: armsx2AndroidBuildDefault("versionName")
         // Which release stream this APK came from: "stable" or "nightly". Read by the in-app
         // updater instead of inferring it from versionCode magnitude.
         buildConfigField("String", "CHANNEL", "\"${armsx2Channel.get()}\"")
@@ -197,8 +211,8 @@ android {
                     arguments += "-DARMSX2_ANDROID_HOST_PAGE_SIZE=${armsx2HostPageSize.get()}"
                     val march = armsx2March.get().let { if (it.isBlank()) "" else " -march=$it" } +
                         armsx2MarchExtra.get().let { if (it.isBlank()) "" else " $it" }
-                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march"
-                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march"
+                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march $armsx2NativeHardeningFlags"
+                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march $armsx2NativeHardeningFlags"
                     if (pgo == "generate") arguments += "-DUSE_PGO_GENERATE=ON"
                     if (pgo == "optimize") {
                         arguments += "-DUSE_PGO_OPTIMIZE=ON"
@@ -233,25 +247,21 @@ android {
                     arguments += "-DARMSX2_ANDROID_HOST_PAGE_SIZE=${armsx2HostPageSize.get()}"
                     val march = armsx2March.get().let { if (it.isBlank()) "" else " -march=$it" } +
                         armsx2MarchExtra.get().let { if (it.isBlank()) "" else " $it" }
-                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march"
-                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march"
+                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march $armsx2NativeHardeningFlags"
+                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march $armsx2NativeHardeningFlags"
                 }
             }
         }
     }
-    // Distribution split: the Play AAB (play flavor) stays scoped-storage /
-    // SAF only — src/main/AndroidManifest.xml has NO MANAGE_EXTERNAL_STORAGE,
-    // so play is Play-policy clean by construction. The sideloaded GitHub APK
-    // (github flavor) merges src/github/AndroidManifest.xml, which adds
-    // MANAGE_EXTERNAL_STORAGE back, and STORAGE_ALL_FILES gates the runtime
-    // all-files / custom-folder path in the setup wizard. applicationId is left
-    // to defaultConfig (driven by -Parmsx2.applicationId) so both flavors honor
+    // Both distribution flavors use SAF-scoped storage. The GitHub flavor adds
+    // the self-updater permission in src/github/AndroidManifest.xml; the Play
+    // flavor does not. applicationId is left to defaultConfig (driven by
+    // -Parmsx2.applicationId) so both flavors honor
     // the release/AAB pipeline's CLI override.
     flavorDimensions += "store"
     productFlavors {
         create("github") {
             dimension = "store"
-            buildConfigField("boolean", "STORAGE_ALL_FILES", "true")
             // In-app GitHub-release updater. Github flavor only — Play forbids self-updating,
             // so the real updater + REQUEST_INSTALL_PACKAGES live in src/github and this stays
             // false for play (which uses the src/play no-op stub).
@@ -266,7 +276,6 @@ android {
         }
         create("play") {
             dimension = "store"
-            buildConfigField("boolean", "STORAGE_ALL_FILES", "false")
             buildConfigField("boolean", "IN_APP_UPDATER", "false")
             buildConfigField("boolean", "LSFG", "false")
             externalNativeBuild { cmake { arguments += "-DARMSX2_ENABLE_LSFG=OFF" } }
@@ -294,7 +303,7 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.31.6"
+            version = armsx2AndroidBuildDefault("cmakeVersion")
         }
     }
     buildFeatures {

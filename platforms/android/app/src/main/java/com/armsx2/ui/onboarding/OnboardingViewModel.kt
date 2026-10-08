@@ -33,7 +33,12 @@ data class OnboardingUiState(
     val error: String? = null,
 )
 
-enum class StorageLocation { Internal, SdCard, Custom }
+enum class StorageLocation {
+    Internal,
+    SdCard,
+    // Retained to identify old roots; users can choose Internal or SD Card instead.
+    Custom,
+}
 
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
     var state = androidx.compose.runtime.mutableStateOf(OnboardingUiState())
@@ -86,30 +91,9 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                 MainActivityRuntime.prefs.edit().putString("systemDir", path).apply()
                 state.value = state.value.copy(systemLocation = location, error = null)
             }
-            // Custom is driven by the UI (all-files-access grant + folder pick, github
-            // flavor only) — the resolved POSIX path arrives via selectCustomStorage.
+            // Keep a legacy custom root unchanged when the wizard restores it.
             StorageLocation.Custom -> {}
         }
-    }
-
-    /** Point the data root at a user-picked folder (github flavor: all-files access).
-     *  [path] is a resolved POSIX path under shared storage; the native core writes
-     *  memcards / saves / configs there. Requires MANAGE_EXTERNAL_STORAGE, which the
-     *  onboarding UI secures before calling this. */
-    fun selectCustomStorage(path: String) {
-        if (path.isBlank()) {
-            state.value = state.value.copy(error = "Couldn't resolve that folder.")
-            return
-        }
-        // Check now, while the player can pick again. Unchecked, an unwritable folder was only
-        // found out at the next launch.
-        if (!MainActivityRuntime.validateSystemDirWritable(path)) {
-            state.value = state.value.copy(error = com.armsx2.i18n.I18n.get("setup.systemDir.error.tryAnother"))
-            return
-        }
-        MainActivityRuntime.systemDir.value = path
-        MainActivityRuntime.prefs.edit().putString("systemDir", path).apply()
-        state.value = state.value.copy(systemLocation = StorageLocation.Custom, error = null)
     }
 
     fun importBios(uri: Uri) {
@@ -293,4 +277,3 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         NativeApp.getBiosInfoFromFd(descriptor.detachFd())
     }.getOrNull()
 }
-
