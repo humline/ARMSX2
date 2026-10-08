@@ -30,6 +30,15 @@ CMAKE_VERSION="$(extract_setting 'CMake version' "$APP_GRADLE" 's/^[[:space:]]*v
 COMPILE_SDK="$(extract_setting 'compileSdk' "$APP_GRADLE" 's/^[[:space:]]*compileSdk = ([0-9]+)$/\1/p')"
 VERSION_CODE="${VC:-$DEFAULT_VERSION_CODE}"
 VERSION_NAME="${VN:-$DEFAULT_VERSION_NAME}"
+APK_NAME_PATTERN="ARMSX2-__FLAVOR__-__PAGE__-vc${VERSION_CODE}-${VERSION_NAME}.apk"
+
+artifact_name() {
+	local name="$APK_NAME_PATTERN"
+	name="${name//__FLAVOR__/$1}"
+	name="${name//__PAGE__/$2}"
+	printf '%s' "$name"
+}
+
 # Share the Play package default with tools/build-play-aab.sh.
 DEFAULT_PLAY_APPLICATION_ID="$(extract_setting 'Play application ID default' "$ANDROID_DIR/tools/build-play-aab.sh" 's/^PKG="\$\{PKG:-([^}]+)\}"$/\1/p')"
 PLAY_APPLICATION_ID="${PKG:-$DEFAULT_PLAY_APPLICATION_ID}"
@@ -115,7 +124,7 @@ echo "Building Android toolchain image with nerdctl/BuildKit..."
 echo "Building GitHub (open-source) and Play release APKs..."
 for flavor in github play; do
 	for page in 4k 16k; do
-		rm -f "$OUTPUT_DIR/ARMSX2-${flavor}-${page}-vc${VERSION_CODE}-${VERSION_NAME}.apk"
+		rm -f "$OUTPUT_DIR/$(artifact_name "$flavor" "$page")"
 	done
 done
 # The inner build command is intentionally literal and expanded only in the container.
@@ -134,6 +143,7 @@ done
 	--env VC="$VERSION_CODE" \
 	--env VN="$VERSION_NAME" \
 	--env PLAY_APPLICATION_ID="$PLAY_APPLICATION_ID" \
+	--env APK_NAME_PATTERN="$APK_NAME_PATTERN" \
 	--volume "$BUILD_CONTEXT/source:/workspace:rw" \
 	--volume "$ANDROID_SDK:/android-sdk-base:ro" \
 	--volume "$GRADLE_CACHE:/gradle:rw" \
@@ -164,7 +174,12 @@ done
 				cp "$entry" "$ANDROID_HOME/$name"
 			fi
 		done
-		apksigner="$(find -L "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+		apksigner="$(
+			for tools_dir in "$ANDROID_HOME"/build-tools/*; do
+				[[ -x "$tools_dir/apksigner" ]] &&
+					printf "%s\t%s\n" "$(basename "$tools_dir")" "$tools_dir/apksigner"
+			done | sort -V -k1,1 | tail -n 1 | cut -f2-
+		)"
 		[[ -x "$apksigner" ]] || { echo "error: apksigner is missing from the Android SDK" >&2; exit 1; }
 		for flavor in Github Play; do
 			flavor_lower="$(printf "%s" "$flavor" | tr "[:upper:]" "[:lower:]")"
@@ -196,7 +211,9 @@ done
 					echo "error: expected native library missing from $apk" >&2
 					exit 1
 				}
-				cp "$apk" "/output/ARMSX2-${flavor_lower}-${page_name}-vc${VC}-${VN}.apk"
+				apk_name="${APK_NAME_PATTERN//__FLAVOR__/$flavor_lower}"
+				apk_name="${apk_name//__PAGE__/$page_name}"
+				cp "$apk" "/output/$apk_name"
 			done
 		done
 	'
@@ -204,7 +221,7 @@ done
 echo "Built APKs:"
 for flavor in github play; do
 	for page in 4k 16k; do
-		apk="$OUTPUT_DIR/ARMSX2-${flavor}-${page}-vc${VERSION_CODE}-${VERSION_NAME}.apk"
+		apk="$OUTPUT_DIR/$(artifact_name "$flavor" "$page")"
 		[[ -s "$apk" ]] || { echo "error: expected APK was not produced: $apk" >&2; exit 1; }
 		sha256sum "$apk"
 	done
