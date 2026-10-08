@@ -1882,7 +1882,7 @@ private val BASE_EN: Map<String, String> = mapOf(
     "setup.storageChooser.grantAllFiles" to "Grant All-Files Access…",
     "setup.storageChooser.internal" to "Internal (app-private)",
     "setup.storageChooser.customShort" to "Custom folder",
-    "setup.storageChooser.customSubtitle" to "Pick any folder (grants all-files access)",
+    "setup.storageChooser.customSubtitle" to "Pick a writable folder for app data",
     "setup.storageChooser.internalShort" to "Internal",
     "setup.storageChooser.title" to "App data location",
     "setup.systemDir.appPrivateSubtitle" to "App-private Android/data folder",

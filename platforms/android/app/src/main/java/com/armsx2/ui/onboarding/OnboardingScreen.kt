@@ -84,10 +84,8 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = viewModel()) {
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let(viewModel::addGameFolder)
     }
-    // github flavor only: a third "Custom folder" data-root, with all-files access
-    // (MANAGE_EXTERNAL_STORAGE) like the old UI. The Play build stays SAF-scoped
-    // (Internal / SD only). Flow: grant all-files access if needed → pick a folder →
-    // resolve the tree URI to a POSIX path the native core can write to directly.
+    // Optional custom data-root selected through SAF. Distribution flavors which
+    // do not expose custom roots keep this flow hidden.
     val context = androidx.compose.ui.platform.LocalContext.current
     val customFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let { u ->
@@ -103,7 +101,8 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = viewModel()) {
         }
     }
     val allFilesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
+        if (com.armsx2.BuildConfig.STORAGE_ALL_FILES &&
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
             android.os.Environment.isExternalStorageManager()
         ) {
             customFolderPicker.launch(null)
@@ -417,7 +416,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.StorageChoices(
         onClick = { onSelect(StorageLocation.SdCard) },
         modifier = Modifier.fillMaxWidth(),
     )
-    // github APK only: custom folder with all-files access (like the old UI).
+    // Optional custom folder, only exposed by builds that opt into this flow.
     if (com.armsx2.BuildConfig.STORAGE_ALL_FILES) {
         ChoiceCard(
             title = str("setup.storageChooser.customShort"),

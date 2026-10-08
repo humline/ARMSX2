@@ -197,8 +197,8 @@ android {
                     arguments += "-DARMSX2_ANDROID_HOST_PAGE_SIZE=${armsx2HostPageSize.get()}"
                     val march = armsx2March.get().let { if (it.isBlank()) "" else " -march=$it" } +
                         armsx2MarchExtra.get().let { if (it.isBlank()) "" else " $it" }
-                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march"
-                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march"
+                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march -fstack-protector-strong"
+                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march -fstack-protector-strong"
                     if (pgo == "generate") arguments += "-DUSE_PGO_GENERATE=ON"
                     if (pgo == "optimize") {
                         arguments += "-DUSE_PGO_OPTIMIZE=ON"
@@ -233,25 +233,22 @@ android {
                     arguments += "-DARMSX2_ANDROID_HOST_PAGE_SIZE=${armsx2HostPageSize.get()}"
                     val march = armsx2March.get().let { if (it.isBlank()) "" else " -march=$it" } +
                         armsx2MarchExtra.get().let { if (it.isBlank()) "" else " $it" }
-                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march"
-                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march"
+                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march -fstack-protector-strong"
+                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march -fstack-protector-strong"
                 }
             }
         }
     }
-    // Distribution split: the Play AAB (play flavor) stays scoped-storage /
-    // SAF only — src/main/AndroidManifest.xml has NO MANAGE_EXTERNAL_STORAGE,
-    // so play is Play-policy clean by construction. The sideloaded GitHub APK
-    // (github flavor) merges src/github/AndroidManifest.xml, which adds
-    // MANAGE_EXTERNAL_STORAGE back, and STORAGE_ALL_FILES gates the runtime
-    // all-files / custom-folder path in the setup wizard. applicationId is left
+    // Both distribution flavors use SAF-scoped storage. The GitHub flavor adds
+    // the self-updater permission in src/github/AndroidManifest.xml; the Play
+    // flavor does not. applicationId is left
     // to defaultConfig (driven by -Parmsx2.applicationId) so both flavors honor
     // the release/AAB pipeline's CLI override.
     flavorDimensions += "store"
     productFlavors {
         create("github") {
             dimension = "store"
-            buildConfigField("boolean", "STORAGE_ALL_FILES", "true")
+            buildConfigField("boolean", "STORAGE_ALL_FILES", "false")
             // In-app GitHub-release updater. Github flavor only — Play forbids self-updating,
             // so the real updater + REQUEST_INSTALL_PACKAGES live in src/github and this stays
             // false for play (which uses the src/play no-op stub).
