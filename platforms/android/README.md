@@ -38,5 +38,8 @@ The script builds a temporary Java/native build image with `nerdctl build`,
 then creates GitHub and Play release-variant APKs for 4K and 16K page sizes
 under `build/nerdctl-apks/`. It uses debug signing (not suitable for release
 distribution), does not use PGO, and excludes local keystores/signing
-properties from the temporary build context. Install the Android SDK platforms,
-NDK, and CMake versions required by `app/build.gradle.kts` before running it.
+properties from the temporary build context. Version defaults are read from
+`app/build.gradle.kts`; `VC` and `VN` override them, and `PKG` overrides the
+Play application ID. Install the
+compile SDK, build-tools, NDK, and CMake versions configured in that Gradle
+file before running it. The SDK is mounted read-only in the build container.

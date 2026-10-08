@@ -11,8 +11,16 @@ NERDCTL="${NERDCTL:-nerdctl}"
 BUILDER_IMAGE="${ARMSX2_ANDROID_BUILDER_IMAGE:-armsx2-android-builder:local}"
 ANDROID_SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 GRADLE_CACHE="$ANDROID_DIR/build/nerdctl-gradle-home"
-VERSION_CODE="${VC:-1088}"
-VERSION_NAME="${VN:-2.6.1}"
+APP_GRADLE="$ANDROID_DIR/app/build.gradle.kts"
+DEFAULT_VERSION_CODE="$(sed -nE 's/.*[?]:[[:space:]]*([0-9]+)$/\1/p' "$APP_GRADLE")"
+DEFAULT_VERSION_NAME="$(sed -nE 's/.*[?]:[[:space:]]*"([^"]+)".*/\1/p' "$APP_GRADLE")"
+NDK_VERSION="$(sed -nE 's/.*armsx2NdkVersion = .*orElse\("([^"]+)"\).*/\1/p' "$APP_GRADLE")"
+CMAKE_VERSION="$(sed -nE 's/.*version = "([0-9.]+)".*/\1/p' "$APP_GRADLE")"
+COMPILE_SDK="$(sed -nE 's/^[[:space:]]*compileSdk = ([0-9]+)$/\1/p' "$APP_GRADLE")"
+VERSION_CODE="${VC:-$DEFAULT_VERSION_CODE}"
+VERSION_NAME="${VN:-$DEFAULT_VERSION_NAME}"
+# Match the Play package id used by tools/build-play-aab.sh.
+PLAY_APPLICATION_ID="${PKG:-come.nanodata.armsx2}"
 
 command -v "$NERDCTL" >/dev/null 2>&1 || {
 	echo "error: nerdctl is required (with its BuildKit builder configured)" >&2
@@ -26,12 +34,47 @@ command -v "$NERDCTL" >/dev/null 2>&1 || {
 	echo "error: Android SDK platforms and NDK must be installed under $ANDROID_SDK" >&2
 	exit 1
 }
+[[ -n "$DEFAULT_VERSION_CODE" && -n "$DEFAULT_VERSION_NAME" && -n "$NDK_VERSION" &&
+	-n "$CMAKE_VERSION" && -n "$COMPILE_SDK" ]] || {
+	echo "error: could not read Android build defaults from $APP_GRADLE" >&2
+	exit 1
+}
+[[ -d "$ANDROID_SDK/ndk/$NDK_VERSION" && -d "$ANDROID_SDK/cmake/$CMAKE_VERSION" ]] || {
+	echo "error: install NDK $NDK_VERSION and CMake $CMAKE_VERSION in $ANDROID_SDK before building" >&2
+	exit 1
+}
+platform_found=false
+for platform in "$ANDROID_SDK/platforms/android-$COMPILE_SDK" "$ANDROID_SDK"/platforms/android-"$COMPILE_SDK".*; do
+	if [[ -d "$platform" ]]; then
+		platform_found=true
+		break
+	fi
+done
+[[ "$platform_found" == true ]] || {
+	echo "error: Android platform $COMPILE_SDK is missing from $ANDROID_SDK" >&2
+	exit 1
+}
+build_tools_found=false
+for build_tools in "$ANDROID_SDK"/build-tools/*; do
+	if [[ -d "$build_tools" ]]; then
+		build_tools_found=true
+		break
+	fi
+done
+[[ "$build_tools_found" == true ]] || {
+	echo "error: Android build-tools must be installed in $ANDROID_SDK" >&2
+	exit 1
+}
 [[ "$VERSION_CODE" =~ ^[0-9]+$ ]] || {
 	echo "error: VC must be an integer" >&2
 	exit 1
 }
 [[ "$VERSION_NAME" =~ ^[A-Za-z0-9._+-]+$ ]] || {
 	echo "error: VN contains unsupported characters" >&2
+	exit 1
+}
+[[ "$PLAY_APPLICATION_ID" =~ ^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$ ]] || {
+	echo "error: PKG must be a valid Android application ID" >&2
 	exit 1
 }
 
@@ -62,6 +105,11 @@ echo "Building Android toolchain image with nerdctl/BuildKit..."
 	"$SCRIPT_DIR"
 
 echo "Building GitHub (open-source) and Play release APKs..."
+for flavor in github play; do
+	for page in 4k 16k; do
+		rm -f "$OUTPUT_DIR/ARMSX2-${flavor}-${page}-vc${VERSION_CODE}-${VERSION_NAME}.apk"
+	done
+done
 # The inner build command is intentionally literal and expanded only in the container.
 # shellcheck disable=SC2016
 "$NERDCTL" run --rm \
@@ -76,8 +124,9 @@ echo "Building GitHub (open-source) and Play release APKs..."
 	--env HOME=/tmp/build-home \
 	--env VC="$VERSION_CODE" \
 	--env VN="$VERSION_NAME" \
+	--env PLAY_APPLICATION_ID="$PLAY_APPLICATION_ID" \
 	--volume "$BUILD_CONTEXT/source:/workspace:rw" \
-	--volume "$ANDROID_SDK:/android-sdk:rw" \
+	--volume "$ANDROID_SDK:/android-sdk:ro" \
 	--volume "$GRADLE_CACHE:/gradle:rw" \
 	--volume "$OUTPUT_DIR:/output:rw" \
 	--workdir /workspace/platforms/android \
@@ -87,10 +136,12 @@ echo "Building GitHub (open-source) and Play release APKs..."
 		for flavor in Github Play; do
 			flavor_lower="$(printf "%s" "$flavor" | tr "[:upper:]" "[:lower:]")"
 			if [[ "$flavor" == Play ]]; then
-				application_id=come.nanodata.armsx2
+				application_id="$PLAY_APPLICATION_ID"
 			else
 				application_id=com.armsx2
 			fi
+			apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort | tail -n 1)"
+			[[ -x "$apksigner" ]] || { echo "error: apksigner is missing from the Android SDK" >&2; exit 1; }
 
 			for page_size in 0x1000 0x4000; do
 				if [[ "$page_size" == 0x1000 ]]; then
@@ -110,6 +161,7 @@ echo "Building GitHub (open-source) and Play release APKs..."
 
 				apk="app/build/outputs/apk/${flavor_lower}/release/app-${flavor_lower}-release.apk"
 				[[ -f "$apk" ]] || { echo "error: expected APK not produced: $apk" >&2; exit 1; }
+				"$apksigner" verify "$apk"
 				unzip -l "$apk" "lib/arm64-v8a/lib${library_name}.so" >/dev/null || {
 					echo "error: expected native library missing from $apk" >&2
 					exit 1
@@ -120,7 +172,10 @@ echo "Building GitHub (open-source) and Play release APKs..."
 	'
 
 echo "Built APKs:"
-for apk in "$OUTPUT_DIR"/*.apk; do
-	[[ -f "$apk" ]] || continue
-	sha256sum "$apk"
+for flavor in github play; do
+	for page in 4k 16k; do
+		apk="$OUTPUT_DIR/ARMSX2-${flavor}-${page}-vc${VERSION_CODE}-${VERSION_NAME}.apk"
+		[[ -s "$apk" ]] || { echo "error: expected APK was not produced: $apk" >&2; exit 1; }
+		sha256sum "$apk"
+	done
 done

@@ -33,7 +33,12 @@ data class OnboardingUiState(
     val error: String? = null,
 )
 
-enum class StorageLocation { Internal, SdCard, Custom }
+enum class StorageLocation {
+    Internal,
+    SdCard,
+    // Retained to show legacy custom roots already saved by earlier versions.
+    Custom,
+}
 
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
     var state = androidx.compose.runtime.mutableStateOf(OnboardingUiState())
