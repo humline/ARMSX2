@@ -48,6 +48,7 @@ val armsx2March = providers.gradleProperty("armsx2.march").orElse("")
 // BuildParameters.cmake's escape hatch tests CMAKE_CXX_FLAGS for "-march=", and the flag has to
 // be a separate token on the command line regardless.
 val armsx2MarchExtra = providers.gradleProperty("armsx2.marchExtra").orElse("")
+val armsx2NativeHardeningFlags = "-fstack-protector-strong"
 // DIAGNOSTIC ONLY (-Parmsx2.recTestHooks=true): compiles the EERecFallback opcode-group
 // interpreter bisect into the EE recompiler. Never set for a shipped build.
 val armsx2RecTestHooks = providers.gradleProperty("armsx2.recTestHooks").orElse("false")
@@ -210,8 +211,8 @@ android {
                     arguments += "-DARMSX2_ANDROID_HOST_PAGE_SIZE=${armsx2HostPageSize.get()}"
                     val march = armsx2March.get().let { if (it.isBlank()) "" else " -march=$it" } +
                         armsx2MarchExtra.get().let { if (it.isBlank()) "" else " $it" }
-                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march -fstack-protector-strong"
-                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march -fstack-protector-strong"
+                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march $armsx2NativeHardeningFlags"
+                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march $armsx2NativeHardeningFlags"
                     if (pgo == "generate") arguments += "-DUSE_PGO_GENERATE=ON"
                     if (pgo == "optimize") {
                         arguments += "-DUSE_PGO_OPTIMIZE=ON"
@@ -246,8 +247,8 @@ android {
                     arguments += "-DARMSX2_ANDROID_HOST_PAGE_SIZE=${armsx2HostPageSize.get()}"
                     val march = armsx2March.get().let { if (it.isBlank()) "" else " -march=$it" } +
                         armsx2MarchExtra.get().let { if (it.isBlank()) "" else " $it" }
-                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march -fstack-protector-strong"
-                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march -fstack-protector-strong"
+                    arguments += "-DCMAKE_C_FLAGS=-O3 -g$march $armsx2NativeHardeningFlags"
+                    arguments += "-DCMAKE_CXX_FLAGS=-O3 -g$march $armsx2NativeHardeningFlags"
                 }
             }
         }

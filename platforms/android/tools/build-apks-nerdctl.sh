@@ -20,6 +20,7 @@ NDK_VERSION="$(android_build_default "$BUILD_DEFAULTS" ndkVersion)"
 CMAKE_VERSION="$(android_build_default "$BUILD_DEFAULTS" cmakeVersion)"
 COMPILE_SDK="$(android_build_default "$BUILD_DEFAULTS" compileSdk)"
 GITHUB_APPLICATION_ID="$(android_build_default "$BUILD_DEFAULTS" githubApplicationId)"
+PLAY_APPLICATION_ID="${PKG:-$(android_build_default "$BUILD_DEFAULTS" playApplicationId)}"
 VERSION_CODE="${VC:-$DEFAULT_VERSION_CODE}"
 VERSION_NAME="${VN:-$DEFAULT_VERSION_NAME}"
 APK_NAME_PATTERN="ARMSX2-__FLAVOR__-__PAGE__-vc${VERSION_CODE}-${VERSION_NAME}.apk"
@@ -32,7 +33,11 @@ artifact_name() {
 	printf '%s' "$name"
 }
 
-PLAY_APPLICATION_ID="${PKG:-$(android_build_default "$BUILD_DEFAULTS" playApplicationId)}"
+GITHUB_4K_APK_NAME="$(artifact_name github 4k)"
+GITHUB_16K_APK_NAME="$(artifact_name github 16k)"
+PLAY_4K_APK_NAME="$(artifact_name play 4k)"
+PLAY_16K_APK_NAME="$(artifact_name play 16k)"
+EXPECTED_APK_NAMES=("$GITHUB_4K_APK_NAME" "$GITHUB_16K_APK_NAME" "$PLAY_4K_APK_NAME" "$PLAY_16K_APK_NAME")
 
 command -v "$NERDCTL" >/dev/null 2>&1 || {
 	echo "error: nerdctl is required (with its BuildKit builder configured)" >&2
@@ -113,10 +118,10 @@ mkdir -p "$BUILD_CONTEXT/source" "$BUILD_CONTEXT/tmp" "$GRADLE_CACHE"
 tar -C "$REPO_DIR" \
 	--exclude='.git' \
 	--exclude='*/.git' \
-	--exclude='./platforms/android/app/build' \
-	--exclude='./platforms/android/build' \
-	--exclude='./platforms/android/armsx2_keystore.properties' \
-	--exclude='./platforms/android/local.properties' \
+	--exclude='*platforms/android/app/build' \
+	--exclude='*platforms/android/build' \
+	--exclude='*platforms/android/armsx2_keystore.properties' \
+	--exclude='*platforms/android/local.properties' \
 	--exclude='*.keystore' \
 	--exclude='*.jks' \
 	--exclude='*.p12' \
@@ -135,10 +140,8 @@ echo "Building Android toolchain image with nerdctl/BuildKit..."
 	"$SCRIPT_DIR"
 
 echo "Building GitHub (open-source) and Play release APKs..."
-for flavor in github play; do
-	for page in 4k 16k; do
-		rm -f "$OUTPUT_DIR/$(artifact_name "$flavor" "$page")"
-	done
+for apk_name in "${EXPECTED_APK_NAMES[@]}"; do
+	rm -f "$OUTPUT_DIR/$apk_name"
 done
 # The inner build command is intentionally literal and expanded only in the container.
 # shellcheck disable=SC2016
@@ -157,7 +160,10 @@ done
 	--env VN="$VERSION_NAME" \
 	--env PLAY_APPLICATION_ID="$PLAY_APPLICATION_ID" \
 	--env GITHUB_APPLICATION_ID="$GITHUB_APPLICATION_ID" \
-	--env APK_NAME_PATTERN="$APK_NAME_PATTERN" \
+	--env GITHUB_4K_APK_NAME="$GITHUB_4K_APK_NAME" \
+	--env GITHUB_16K_APK_NAME="$GITHUB_16K_APK_NAME" \
+	--env PLAY_4K_APK_NAME="$PLAY_4K_APK_NAME" \
+	--env PLAY_16K_APK_NAME="$PLAY_16K_APK_NAME" \
 	--volume "$BUILD_CONTEXT/source:/workspace:rw" \
 	--volume "$BUILD_CONTEXT/tmp:/tmp:rw" \
 	--volume "$ANDROID_SDK:/android-sdk-base:ro" \
@@ -210,6 +216,8 @@ done
 					page_name=16k
 				fi
 				library_name="emucore_${page_name}"
+				apk="app/build/outputs/apk/${flavor_lower}/release/app-${flavor_lower}-release.apk"
+				rm -f "$apk"
 				echo "=== ${flavor} ${page_name} ==="
 				./gradlew --no-daemon ":app:assemble${flavor}Release" \
 					"-Parmsx2.applicationId=${application_id}" \
@@ -219,15 +227,19 @@ done
 					"-Parmsx2.versionCode=${VC}" \
 					"-Parmsx2.versionName=${VN}"
 
-				apk="app/build/outputs/apk/${flavor_lower}/release/app-${flavor_lower}-release.apk"
 				[[ -f "$apk" ]] || { echo "error: expected APK not produced: $apk" >&2; exit 1; }
 				"$apksigner" verify "$apk"
 				unzip -l "$apk" "lib/arm64-v8a/lib${library_name}.so" >/dev/null || {
 					echo "error: expected native library missing from $apk" >&2
 					exit 1
 				}
-				apk_name="${APK_NAME_PATTERN//__FLAVOR__/$flavor_lower}"
-				apk_name="${apk_name//__PAGE__/$page_name}"
+				case "$flavor_lower:$page_name" in
+					github:4k) apk_name="$GITHUB_4K_APK_NAME" ;;
+					github:16k) apk_name="$GITHUB_16K_APK_NAME" ;;
+					play:4k) apk_name="$PLAY_4K_APK_NAME" ;;
+					play:16k) apk_name="$PLAY_16K_APK_NAME" ;;
+					*) echo "error: unexpected APK variant $flavor_lower/$page_name" >&2; exit 1 ;;
+				esac
 				cp "$apk" "/output/$apk_name"
 			done
 		done
@@ -244,10 +256,8 @@ checksum_file() {
 		return 1
 	fi
 }
-for flavor in github play; do
-	for page in 4k 16k; do
-		apk="$OUTPUT_DIR/$(artifact_name "$flavor" "$page")"
-		[[ -s "$apk" ]] || { echo "error: expected APK was not produced: $apk" >&2; exit 1; }
-		checksum_file "$apk"
-	done
+for apk_name in "${EXPECTED_APK_NAMES[@]}"; do
+	apk="$OUTPUT_DIR/$apk_name"
+	[[ -s "$apk" ]] || { echo "error: expected APK was not produced: $apk" >&2; exit 1; }
+	checksum_file "$apk"
 done
