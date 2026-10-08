@@ -11,23 +11,20 @@ NERDCTL="${NERDCTL:-nerdctl}"
 BUILDER_IMAGE="${ARMSX2_ANDROID_BUILDER_IMAGE:-armsx2-android-builder:local}"
 ANDROID_SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 GRADLE_CACHE="$ANDROID_DIR/build/nerdctl-gradle-home"
-APP_GRADLE="$ANDROID_DIR/app/build.gradle.kts"
+BUILD_DEFAULTS="$ANDROID_DIR/android-build.properties"
 
-extract_setting() {
-	local name="$1" file="$2" pattern="$3" value
-	value="$(sed -nE "$pattern" "$file" | sed -n '1p')"
-	[[ -n "$value" ]] || {
-		echo "error: could not read $name from $file" >&2
-		return 1
-	}
+build_default() {
+	local key="$1" value
+	value="$(awk -F= -v key="$key" '$1 == key { print substr($0, index($0, "=") + 1); exit }' "$BUILD_DEFAULTS")"
+	[[ -n "$value" ]] || { echo "error: missing $key in $BUILD_DEFAULTS" >&2; return 1; }
 	printf '%s' "$value"
 }
 
-DEFAULT_VERSION_CODE="$(extract_setting 'versionCode default' "$APP_GRADLE" 's/^[[:space:]]*versionCode = .* [[:space:]]*[?]:[[:space:]]*([0-9]+)$/\1/p')"
-DEFAULT_VERSION_NAME="$(extract_setting 'versionName default' "$APP_GRADLE" 's/^[[:space:]]*versionName = .* [[:space:]]*[?]:[[:space:]]*"([^"]+)".*/\1/p')"
-NDK_VERSION="$(extract_setting 'NDK version' "$APP_GRADLE" 's/^[[:space:]]*val armsx2NdkVersion = .*orElse\("([^"]+)"\).*/\1/p')"
-CMAKE_VERSION="$(extract_setting 'CMake version' "$APP_GRADLE" 's/^[[:space:]]*version = "([0-9.]+)"[[:space:]]*$/\1/p')"
-COMPILE_SDK="$(extract_setting 'compileSdk' "$APP_GRADLE" 's/^[[:space:]]*compileSdk = ([0-9]+)$/\1/p')"
+DEFAULT_VERSION_CODE="$(build_default versionCode)"
+DEFAULT_VERSION_NAME="$(build_default versionName)"
+NDK_VERSION="$(build_default ndkVersion)"
+CMAKE_VERSION="$(build_default cmakeVersion)"
+COMPILE_SDK="$(build_default compileSdk)"
 VERSION_CODE="${VC:-$DEFAULT_VERSION_CODE}"
 VERSION_NAME="${VN:-$DEFAULT_VERSION_NAME}"
 APK_NAME_PATTERN="ARMSX2-__FLAVOR__-__PAGE__-vc${VERSION_CODE}-${VERSION_NAME}.apk"
@@ -39,9 +36,7 @@ artifact_name() {
 	printf '%s' "$name"
 }
 
-# Share the Play package default with tools/build-play-aab.sh.
-DEFAULT_PLAY_APPLICATION_ID="$(extract_setting 'Play application ID default' "$ANDROID_DIR/tools/build-play-aab.sh" 's/^PKG="\$\{PKG:-([^}]+)\}"$/\1/p')"
-PLAY_APPLICATION_ID="${PKG:-$DEFAULT_PLAY_APPLICATION_ID}"
+PLAY_APPLICATION_ID="${PKG:-$(build_default playApplicationId)}"
 
 command -v "$NERDCTL" >/dev/null 2>&1 || {
 	echo "error: nerdctl is required (with its BuildKit builder configured)" >&2
@@ -97,7 +92,7 @@ done
 
 BUILD_CONTEXT="$(mktemp -d "${TMPDIR:-/tmp}/armsx2-nerdctl.XXXXXX")"
 trap 'rm -rf "$BUILD_CONTEXT"' EXIT
-mkdir -p "$BUILD_CONTEXT/source" "$GRADLE_CACHE"
+mkdir -p "$BUILD_CONTEXT/source" "$BUILD_CONTEXT/tmp" "$GRADLE_CACHE"
 
 # Build from the current working tree, but do not copy VCS metadata or local
 # signing material into the builder container.
@@ -106,6 +101,7 @@ tar -C "$REPO_DIR" \
 	--exclude='./platforms/android/app/build' \
 	--exclude='./platforms/android/build' \
 	--exclude='./platforms/android/armsx2_keystore.properties' \
+	--exclude='./platforms/android/local.properties' \
 	--exclude='*.keystore' \
 	--exclude='*.jks' \
 	--exclude='*.p12' \
@@ -134,7 +130,6 @@ done
 	--security-opt no-new-privileges \
 	--cap-drop ALL \
 	--read-only \
-	--tmpfs /tmp:rw,nosuid,nodev,size=2g \
 	--tmpfs /android-sdk:rw,nosuid,nodev,size=2g \
 	--env ANDROID_HOME=/android-sdk \
 	--env ANDROID_SDK_ROOT=/android-sdk \
@@ -145,6 +140,7 @@ done
 	--env PLAY_APPLICATION_ID="$PLAY_APPLICATION_ID" \
 	--env APK_NAME_PATTERN="$APK_NAME_PATTERN" \
 	--volume "$BUILD_CONTEXT/source:/workspace:rw" \
+	--volume "$BUILD_CONTEXT/tmp:/tmp:rw" \
 	--volume "$ANDROID_SDK:/android-sdk-base:ro" \
 	--volume "$GRADLE_CACHE:/gradle:rw" \
 	--volume "$OUTPUT_DIR:/output:rw" \

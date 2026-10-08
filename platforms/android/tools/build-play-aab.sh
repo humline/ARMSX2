@@ -24,15 +24,22 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # platforms/android
 GRADLE="$ROOT_DIR/gradlew"
+BUILD_DEFAULTS="$ROOT_DIR/android-build.properties"
+
+build_default() {
+	local key="$1" value
+	value="$(awk -F= -v key="$key" '$1 == key { print substr($0, index($0, "=") + 1); exit }' "$BUILD_DEFAULTS")"
+	[[ -n "$value" ]] || { echo "error: missing $key in $BUILD_DEFAULTS" >&2; return 1; }
+	printf '%s' "$value"
+}
 
 VC="${VC:?set VC=<versionCode>}"
 VN="${VN:?set VN=<versionName>}"
-PKG="${PKG:-come.nanodata.armsx2}"
+PKG="${PKG:-$(build_default playApplicationId)}"
 PROF="${PROF:-$HOME/Downloads/armsx2.profdata}"
-# The NDK the four sideload targets build with (build-release-targets.sh) and the PGO profile is
-# recorded from. Left to the gradle default, 28.2, the AAB compiled with an older clang and about
-# 6,400 functions did not match the profile, so the Play build ran with far less of it.
-NDK="${NDK:-29.0.14206865}"
+# Read the canonical NDK version from android-build.properties so the Play and
+# sideload builds use the same toolchain as the PGO profile.
+NDK="${NDK:-$(build_default ndkVersion)}"
 OUTPUT_AAB="${1:-$HOME/Downloads/ARMSX2-${VN}-play-vc${VC}-dualcore.aab}"
 
 if [[ -z "${JAVA_HOME:-}" && -d "/Applications/Android Studio.app/Contents/jbr/Contents/Home" ]]; then

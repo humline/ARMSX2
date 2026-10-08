@@ -7,6 +7,17 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+val armsx2AndroidBuildDefaultsFile = rootProject.file("android-build.properties")
+val armsx2AndroidBuildDefaults = Properties().apply {
+    if (!armsx2AndroidBuildDefaultsFile.isFile) {
+        throw GradleException("android-build.properties is missing.")
+    }
+    armsx2AndroidBuildDefaultsFile.inputStream().use(::load)
+}
+fun armsx2AndroidBuildDefault(name: String): String =
+    armsx2AndroidBuildDefaults.getProperty(name)?.takeIf { it.isNotBlank() }
+        ?: throw GradleException("android-build.properties is missing '$name'.")
+
 val armsx2NativeLibName = providers.gradleProperty("armsx2.nativeLibName").orElse("emucore_4k")
 val armsx2Pgo = providers.gradleProperty("armsx2.pgo").orElse("none") // none | generate | optimize
 val armsx2PgoProfile = providers.gradleProperty("armsx2.pgoProfile").orElse("") // abs path to merged .profdata (optimize)
@@ -23,7 +34,7 @@ val armsx2MinSdk = providers.gradleProperty("armsx2.minSdk").orElse("26")
 // Pinned, not left to AGP's default: the two targets must differ ONLY where we say they do, and
 // an NDK that drifts under one of them makes an A/B meaningless. 29 is what the release targets
 // and pgo/armsx2.profdata use.
-val armsx2NdkVersion = providers.gradleProperty("armsx2.ndkVersion").orElse("29.0.14206865")
+val armsx2NdkVersion = providers.gradleProperty("armsx2.ndkVersion").orElse(armsx2AndroidBuildDefault("ndkVersion"))
 // Empty = let BuildParameters.cmake choose (armv8-a). The v8.2 targets pass an explicit
 // -march; FEAT_FP16 and FEAT_DotProd are OPTIONAL at v8.2, so they must be named, not implied.
 val armsx2March = providers.gradleProperty("armsx2.march").orElse("")
@@ -105,7 +116,7 @@ val armsx2DiscordSdkDir: String? =
 
 android {
     namespace = "com.armsx2"
-    compileSdk = 37
+    compileSdk = armsx2AndroidBuildDefault("compileSdk").toInt()
     ndkVersion = armsx2NdkVersion.get()
 
     defaultConfig {
@@ -113,8 +124,9 @@ android {
         manifestPlaceholders["appLabel"] = armsx2AppLabel.get()
         minSdk = armsx2MinSdk.get().toInt()
         targetSdk = 37
-        versionCode = providers.gradleProperty("armsx2.versionCode").orNull?.toInt() ?: 1088
-        versionName = providers.gradleProperty("armsx2.versionName").orNull ?: "2.6.1"
+        versionCode = providers.gradleProperty("armsx2.versionCode").orNull?.toInt()
+            ?: armsx2AndroidBuildDefault("versionCode").toInt()
+        versionName = providers.gradleProperty("armsx2.versionName").orNull ?: armsx2AndroidBuildDefault("versionName")
         // Which release stream this APK came from: "stable" or "nightly". Read by the in-app
         // updater instead of inferring it from versionCode magnitude.
         buildConfigField("String", "CHANNEL", "\"${armsx2Channel.get()}\"")
@@ -289,7 +301,7 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.31.6"
+            version = armsx2AndroidBuildDefault("cmakeVersion")
         }
     }
     buildFeatures {
