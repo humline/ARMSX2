@@ -1672,7 +1672,6 @@
  "setup.storageChooser.internalShort": "Internal",
  "setup.storageChooser.title": "ตำแหน่งข้อมูลแอป",
  "setup.systemDir.appPrivateSubtitle": "โฟลเดอร์ Android/data แบบ app-private",
- "setup.systemDir.error.grantAllFiles": "เขียนลงโฟลเดอร์นั้นไม่ได้ อนุญาต All-Files Access แล้วเลือกใหม่",
  "setup.systemDir.error.noSdCard": "ไม่พบ SD card จึงคงอยู่ที่ที่จัดเก็บภายใน",
  "setup.systemDir.error.notWritable": "โฟลเดอร์นั้นใช้เป็นข้อมูล emulator ที่เขียนได้ไม่ได้บน Android เวอร์ชันนี้ ",
  "setup.systemDir.error.tryAnother": "โฟลเดอร์นั้นใช้เป็นข้อมูล emulator ที่เขียนได้ไม่ได้ ลองอันอื่น",

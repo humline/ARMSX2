@@ -1672,7 +1672,6 @@
  "setup.storageChooser.internalShort": "Dahili",
  "setup.storageChooser.title": "Uygulama veri konumu",
  "setup.systemDir.appPrivateSubtitle": "Uygulamaya özel Android/data klasörü",
- "setup.systemDir.error.grantAllFiles": "Bu klasöre yazılamadı. Tüm Dosya Erişimi verin, ardından tekrar seçin.",
  "setup.systemDir.error.noSdCard": "SD kart algılanmadı. Dahili depolamada kalınıyor.",
  "setup.systemDir.error.notWritable": "Bu klasör, bu Android sürümünde yazılabilir emülatör verisi için kullanılamaz. ",
  "setup.systemDir.error.tryAnother": "Bu klasör yazılabilir emülatör verisi için kullanılamaz. Başka birini deneyin.",

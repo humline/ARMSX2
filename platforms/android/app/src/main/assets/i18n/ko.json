@@ -1672,7 +1672,6 @@
  "setup.storageChooser.internalShort": "내부",
  "setup.storageChooser.title": "앱 데이터 위치",
  "setup.systemDir.appPrivateSubtitle": "앱 전용 Android/data 폴더",
- "setup.systemDir.error.grantAllFiles": "해당 폴더에 쓸 수 없습니다. 모든 파일 액세스를 허용한 다음 다시 선택하세요.",
  "setup.systemDir.error.noSdCard": "SD 카드가 감지되지 않았습니다. 내부 저장소를 유지합니다.",
  "setup.systemDir.error.notWritable": "이 Android 버전에서는 해당 폴더를 쓰기 가능한 에뮬레이터 데이터에 사용할 수 없습니다. ",
  "setup.systemDir.error.tryAnother": "해당 폴더는 쓰기 가능한 에뮬레이터 데이터에 사용할 수 없습니다. 다른 폴더를 시도하세요.",

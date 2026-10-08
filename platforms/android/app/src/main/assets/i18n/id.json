@@ -1672,7 +1672,6 @@
   "setup.storageChooser.internalShort": "Internal",
   "setup.storageChooser.title": "Lokasi data aplikasi",
   "setup.systemDir.appPrivateSubtitle": "Folder Android/data app-private",
-  "setup.systemDir.error.grantAllFiles": "Tidak bisa menulis ke folder itu. Beri Akses Semua File, lalu pilih lagi.",
   "setup.systemDir.error.noSdCard": "Tak ada kartu SD terdeteksi. Tetap di penyimpanan Internal.",
   "setup.systemDir.error.notWritable": "Folder itu tak bisa dipakai untuk data emulator yang dapat ditulis pada versi Android ini. ",
   "setup.systemDir.error.tryAnother": "Folder itu tak bisa dipakai untuk data emulator yang dapat ditulis. Coba yang lain.",

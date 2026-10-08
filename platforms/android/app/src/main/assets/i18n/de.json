@@ -1622,7 +1622,6 @@
  "setup.storageChooser.internalShort": "Intern",
  "setup.storageChooser.title": "App-Datenspeicherort",
  "setup.systemDir.appPrivateSubtitle": "App-privater Android/data-Ordner",
- "setup.systemDir.error.grantAllFiles": "In diesen Ordner kann nicht geschrieben werden. Zugriff auf alle Dateien erteilen und ihn erneut wählen.",
  "setup.systemDir.error.noSdCard": "Keine SD-Karte erkannt. Es bleibt beim internen Speicher.",
  "setup.systemDir.error.notWritable": "Dieser Ordner eignet sich auf dieser Android-Version nicht für beschreibbare Emulator-Daten.",
  "setup.systemDir.error.tryAnother": "Dieser Ordner eignet sich nicht für beschreibbare Emulator-Daten. Bitte einen anderen wählen.",

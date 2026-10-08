@@ -1667,7 +1667,6 @@
   "setup.storageChooser.internalShort": "Interne",
   "setup.storageChooser.title": "Emplacement des données de l'appli",
   "setup.systemDir.appPrivateSubtitle": "Dossier Android/data privé à l'appli",
-  "setup.systemDir.error.grantAllFiles": "Impossible d'écrire dans ce dossier. Accordez l'accès à tous les fichiers, puis choisissez-le à nouveau.",
   "setup.systemDir.error.noSdCard": "Aucune carte SD détectée : maintien sur le stockage interne.",
   "setup.systemDir.error.notWritable": "Ce dossier ne peut pas servir de données émulateur inscriptibles sur cette version d'Android. ",
   "setup.systemDir.error.tryAnother": "Ce dossier ne peut pas servir de données émulateur inscriptibles. Essayez-en un autre.",

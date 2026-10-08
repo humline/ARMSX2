@@ -1672,7 +1672,6 @@
  "setup.storageChooser.internalShort": "Wewnętrzna",
  "setup.storageChooser.title": "Lokalizacja danych aplikacji",
  "setup.systemDir.appPrivateSubtitle": "Prywatny folder Android/data aplikacji",
- "setup.systemDir.error.grantAllFiles": "Nie udało się zapisać do tego folderu. Przyznaj dostęp do wszystkich plików, potem wybierz go ponownie.",
  "setup.systemDir.error.noSdCard": "Nie wykryto karty SD. Pozostaję na pamięci wewnętrznej.",
  "setup.systemDir.error.notWritable": "Tego folderu nie można użyć dla zapisywalnych danych emulatora w tej wersji Androida. ",
  "setup.systemDir.error.tryAnother": "Tego folderu nie można użyć dla zapisywalnych danych emulatora. Spróbuj innego.",

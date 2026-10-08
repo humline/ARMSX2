@@ -1696,7 +1696,6 @@
   "setup.storageChooser.internalShort": "Внутренний",
   "setup.storageChooser.title": "Расположение данных приложения",
   "setup.systemDir.appPrivateSubtitle": "Частная папка приложения Android/data",
-  "setup.systemDir.error.grantAllFiles": "Не удалось выполнить запись в эту папку. Предоставьте доступ ко всем файлам, затем выберите его еще раз.",
   "setup.systemDir.error.noSdCard": "SD-карта не обнаружена, поэтому остается внутренняя память.",
   "setup.systemDir.error.notWritable": "Эту папку нельзя использовать для записываемых данных эмулятора в этой версии Android. ",
   "setup.systemDir.error.tryAnother": "Эту папку нельзя использовать для записываемых данных эмулятора. Попробуйте другой.",

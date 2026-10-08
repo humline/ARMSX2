@@ -7,7 +7,6 @@ REPO_DIR="$(cd "$ANDROID_DIR/../.." && pwd)"
 # shellcheck source=lib/android-build-defaults.sh
 source "$SCRIPT_DIR/lib/android-build-defaults.sh"
 OUTPUT_DIR="${1:-$ANDROID_DIR/build/nerdctl-apks}"
-OUTPUT_DIR="$(mkdir -p "$OUTPUT_DIR" && cd "$OUTPUT_DIR" && pwd)"
 
 NERDCTL="${NERDCTL:-nerdctl}"
 BUILDER_IMAGE="${ARMSX2_ANDROID_BUILDER_IMAGE:-armsx2-android-builder:local}"
@@ -104,6 +103,7 @@ done
 	exit 1
 }
 
+OUTPUT_DIR="$(mkdir -p "$OUTPUT_DIR" && cd "$OUTPUT_DIR" && pwd)"
 BUILD_CONTEXT="$(mktemp -d "${TMPDIR:-/tmp}/armsx2-nerdctl.XXXXXX")"
 trap 'rm -rf "$BUILD_CONTEXT"' EXIT
 mkdir -p "$BUILD_CONTEXT/source" "$BUILD_CONTEXT/tmp" "$GRADLE_CACHE"
@@ -128,6 +128,7 @@ tar -C "$REPO_DIR" \
 
 echo "Building Android toolchain image with nerdctl/BuildKit..."
 "$NERDCTL" build \
+	--platform linux/amd64 \
 	--progress=plain \
 	--file "$SCRIPT_DIR/nerdctl-android-builder.Dockerfile" \
 	--tag "$BUILDER_IMAGE" \
@@ -142,6 +143,7 @@ done
 # The inner build command is intentionally literal and expanded only in the container.
 # shellcheck disable=SC2016
 "$NERDCTL" run --rm \
+	--platform linux/amd64 \
 	--user "$(id -u):$(id -g)" \
 	--security-opt no-new-privileges \
 	--cap-drop ALL \

@@ -1672,7 +1672,6 @@
  "setup.storageChooser.internalShort": "内部",
  "setup.storageChooser.title": "应用数据位置",
  "setup.systemDir.appPrivateSubtitle": "应用私有的 Android/data 文件夹",
- "setup.systemDir.error.grantAllFiles": "无法写入该文件夹。请授予所有文件访问权限，然后重新选择。",
  "setup.systemDir.error.noSdCard": "未检测到 SD 卡，保持使用内部存储。",
  "setup.systemDir.error.notWritable": "该文件夹在此 Android 版本上无法用于可写的模拟器数据。 ",
  "setup.systemDir.error.tryAnother": "该文件夹无法用于可写的模拟器数据。请换一个。",

@@ -1672,7 +1672,6 @@
  "setup.storageChooser.internalShort": "الداخلي",
  "setup.storageChooser.title": "موقع بيانات التطبيق",
  "setup.systemDir.appPrivateSubtitle": "مجلد Android/data الخاص بالتطبيق",
- "setup.systemDir.error.grantAllFiles": "تعذّرت الكتابة إلى ذلك المجلد. امنح الوصول لكل الملفات، ثم اختره مجدداً.",
  "setup.systemDir.error.noSdCard": "لم يُكتشف بطاقة SD، لذا يبقى التخزين الداخلي.",
  "setup.systemDir.error.notWritable": "لا يمكن استخدام ذلك المجلد لبيانات محاكي قابلة للكتابة على إصدار Android هذا. ",
  "setup.systemDir.error.tryAnother": "لا يمكن استخدام ذلك المجلد لبيانات محاكي قابلة للكتابة. جرّب غيره.",

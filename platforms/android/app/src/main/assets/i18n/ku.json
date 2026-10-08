@@ -1696,7 +1696,6 @@
   "setup.storageChooser.internalShort": "Navxweyî",
   "setup.storageChooser.title": "Cihê daneya sepanê",
   "setup.systemDir.appPrivateSubtitle": "Peldanka Android-a-taybet / peldanka daneyê",
-  "setup.systemDir.error.grantAllFiles": "Nekarî li wê peldankê binivîsîne. Gihîştina Hemî Pelan bidin, dûv re dîsa hilbijêrin.",
   "setup.systemDir.error.noSdCard": "Qerta SD-ê nehat dîtin, ji ber vê yekê li hilanîna hundurîn dimîne.",
   "setup.systemDir.error.notWritable": "Ew peldank nikare ji bo daneyên emulatora nivîsandinê li ser vê guhertoya Android-ê were bikar anîn. ",
   "setup.systemDir.error.tryAnother": "Ew peldank nikare ji bo daneyên emulatorê yên nivîskî were bikar anîn. Yekî din biceribîne.",

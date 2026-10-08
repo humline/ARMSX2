@@ -923,7 +923,6 @@
  "setup.storageChooser.internalShort": "Interno",
  "setup.storageChooser.title": "Local dos dados do app",
  "setup.systemDir.appPrivateSubtitle": "Pasta Android/data privada do app",
- "setup.systemDir.error.grantAllFiles": "Não foi possível gravar nessa pasta. Conceda Acesso a Todos os Arquivos e escolha-a novamente.",
  "setup.systemDir.error.noSdCard": "Nenhum cartão SD detectado. Permanecendo no armazenamento Interno.",
  "setup.systemDir.error.notWritable": "Essa pasta não pode ser usada para dados graváveis do emulador nesta versão do Android. ",
  "setup.systemDir.error.tryAnother": "Essa pasta não pode ser usada para dados graváveis do emulador. Tente outra.",

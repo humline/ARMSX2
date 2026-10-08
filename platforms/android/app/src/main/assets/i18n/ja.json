@@ -1672,7 +1672,6 @@
   "setup.storageChooser.internalShort": "Internal",
   "setup.storageChooser.title": "アプリデータの場所",
   "setup.systemDir.appPrivateSubtitle": "アプリ専用のAndroid/dataフォルダ",
-  "setup.systemDir.error.grantAllFiles": "そのフォルダに書き込めませんでした。全ファイルアクセスを許可してから、もう一度選択してください。",
   "setup.systemDir.error.noSdCard": "SDカードが検出されませんでした。Internalストレージのままにします。",
   "setup.systemDir.error.notWritable": "このAndroidバージョンでは、そのフォルダは書き込み可能なエミュレーターデータに使用できません。 ",
   "setup.systemDir.error.tryAnother": "そのフォルダは書き込み可能なエミュレーターデータに使用できません。別のものをお試しください。",

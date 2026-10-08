@@ -1885,7 +1885,6 @@ private val BASE_EN: Map<String, String> = mapOf(
     "setup.storageChooser.internalShort" to "Internal",
     "setup.storageChooser.title" to "App data location",
     "setup.systemDir.appPrivateSubtitle" to "App-private Android/data folder",
-    "setup.systemDir.error.grantAllFiles" to "Couldn't write to that folder. Grant All-Files Access, then pick it again.",
     "setup.systemDir.error.noSdCard" to "No SD card detected. Staying on Internal storage.",
     "setup.systemDir.error.notWritable" to "That folder can't be used for writable emulator data on this Android version. ",
     "setup.systemDir.error.tryAnother" to "That folder can't be used for writable emulator data. Try another.",

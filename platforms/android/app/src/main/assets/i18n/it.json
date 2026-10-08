@@ -1667,7 +1667,6 @@
  "setup.storageChooser.internalShort": "Interna",
  "setup.storageChooser.title": "Posizione dati app",
  "setup.systemDir.appPrivateSubtitle": "Cartella app-privata Android/data",
- "setup.systemDir.error.grantAllFiles": "Impossibile scrivere in quella cartella. Concedi accesso a tutti i file, poi selezionala di nuovo.",
  "setup.systemDir.error.noSdCard": "Nessuna SD card rilevata: si resta sull'archiviazione interna.",
  "setup.systemDir.error.notWritable": "Quella cartella non può essere usata per dati emulatore scrivibili su questa versione di Android. ",
  "setup.systemDir.error.tryAnother": "Quella cartella non può essere usata per dati emulatore scrivibili. Provane un'altra.",
