@@ -28,7 +28,7 @@ one APK, signs it, and verifies 16K zip alignment. This keeps one distributable
 APK working correctly on both older 4K-page devices and newer 16K-page devices.
 
 To build per-page-size APKs for both the open-source and Play flavors in a
-Linux/amd64 nerdctl/BuildKit environment, run:
+Linux/amd64 nerdctl/BuildKit environment with a Linux x86_64 Android SDK, run:
 
 ```bash
 ANDROID_HOME="$HOME/Android/Sdk" tools/build-apks-nerdctl.sh

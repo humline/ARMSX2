@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ANDROID_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$ANDROID_DIR/../.." && pwd)"
+# shellcheck source=lib/android-build-defaults.sh
+source "$SCRIPT_DIR/lib/android-build-defaults.sh"
 OUTPUT_DIR="${1:-$ANDROID_DIR/build/nerdctl-apks}"
 OUTPUT_DIR="$(mkdir -p "$OUTPUT_DIR" && cd "$OUTPUT_DIR" && pwd)"
 
@@ -13,19 +15,12 @@ ANDROID_SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 GRADLE_CACHE="$ANDROID_DIR/build/nerdctl-gradle-home"
 BUILD_DEFAULTS="$ANDROID_DIR/android-build.properties"
 
-build_default() {
-	local key="$1" value
-	value="$(awk -F= -v key="$key" '$1 == key { print substr($0, index($0, "=") + 1); exit }' "$BUILD_DEFAULTS")"
-	[[ -n "$value" ]] || { echo "error: missing $key in $BUILD_DEFAULTS" >&2; return 1; }
-	printf '%s' "$value"
-}
-
-DEFAULT_VERSION_CODE="$(build_default versionCode)"
-DEFAULT_VERSION_NAME="$(build_default versionName)"
-NDK_VERSION="$(build_default ndkVersion)"
-CMAKE_VERSION="$(build_default cmakeVersion)"
-COMPILE_SDK="$(build_default compileSdk)"
-GITHUB_APPLICATION_ID="$(build_default githubApplicationId)"
+DEFAULT_VERSION_CODE="$(android_build_default "$BUILD_DEFAULTS" versionCode)"
+DEFAULT_VERSION_NAME="$(android_build_default "$BUILD_DEFAULTS" versionName)"
+NDK_VERSION="$(android_build_default "$BUILD_DEFAULTS" ndkVersion)"
+CMAKE_VERSION="$(android_build_default "$BUILD_DEFAULTS" cmakeVersion)"
+COMPILE_SDK="$(android_build_default "$BUILD_DEFAULTS" compileSdk)"
+GITHUB_APPLICATION_ID="$(android_build_default "$BUILD_DEFAULTS" githubApplicationId)"
 VERSION_CODE="${VC:-$DEFAULT_VERSION_CODE}"
 VERSION_NAME="${VN:-$DEFAULT_VERSION_NAME}"
 APK_NAME_PATTERN="ARMSX2-__FLAVOR__-__PAGE__-vc${VERSION_CODE}-${VERSION_NAME}.apk"
@@ -38,7 +33,7 @@ artifact_name() {
 	printf '%s' "$name"
 }
 
-PLAY_APPLICATION_ID="${PKG:-$(build_default playApplicationId)}"
+PLAY_APPLICATION_ID="${PKG:-$(android_build_default "$BUILD_DEFAULTS" playApplicationId)}"
 
 command -v "$NERDCTL" >/dev/null 2>&1 || {
 	echo "error: nerdctl is required (with its BuildKit builder configured)" >&2
@@ -48,6 +43,10 @@ command -v "$NERDCTL" >/dev/null 2>&1 || {
 	echo "error: set ANDROID_HOME or ANDROID_SDK_ROOT to an installed Android SDK" >&2
 	exit 1
 }
+[[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || {
+	echo "error: the nerdctl Android builder requires a Linux x86_64 host SDK/toolchain" >&2
+	exit 1
+}
 [[ -d "$ANDROID_SDK/platforms" && -d "$ANDROID_SDK/ndk" &&
 	-d "$ANDROID_SDK/platform-tools" && -d "$ANDROID_SDK/licenses" ]] || {
 	echo "error: Android SDK platforms, NDK, platform-tools, and licenses must be installed under $ANDROID_SDK" >&2
@@ -55,6 +54,11 @@ command -v "$NERDCTL" >/dev/null 2>&1 || {
 }
 [[ -d "$ANDROID_SDK/ndk/$NDK_VERSION" && -d "$ANDROID_SDK/cmake/$CMAKE_VERSION" ]] || {
 	echo "error: install NDK $NDK_VERSION and CMake $CMAKE_VERSION in $ANDROID_SDK before building" >&2
+	exit 1
+}
+[[ -x "$ANDROID_SDK/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" &&
+	-x "$ANDROID_SDK/cmake/$CMAKE_VERSION/bin/cmake" ]] || {
+	echo "error: the SDK must contain Linux x86_64 NDK and CMake host tools" >&2
 	exit 1
 }
 platform_found=false
@@ -107,7 +111,8 @@ mkdir -p "$BUILD_CONTEXT/source" "$BUILD_CONTEXT/tmp" "$GRADLE_CACHE"
 # Build from the current working tree, but do not copy VCS metadata or local
 # signing material into the builder container.
 tar -C "$REPO_DIR" \
-	--exclude='./.git' \
+	--exclude='.git' \
+	--exclude='*/.git' \
 	--exclude='./platforms/android/app/build' \
 	--exclude='./platforms/android/build' \
 	--exclude='./platforms/android/armsx2_keystore.properties' \
@@ -117,6 +122,7 @@ tar -C "$REPO_DIR" \
 	--exclude='*.p12' \
 	--exclude='*.pfx' \
 	--exclude='*.profdata' \
+	--exclude='.gradle' \
 	--exclude='*/.gradle' \
 	-cf - . | tar -C "$BUILD_CONTEXT/source" -xf -
 

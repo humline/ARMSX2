@@ -23,23 +23,18 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # platforms/android
+# shellcheck source=lib/android-build-defaults.sh
+source "$ROOT_DIR/tools/lib/android-build-defaults.sh"
 GRADLE="$ROOT_DIR/gradlew"
 BUILD_DEFAULTS="$ROOT_DIR/android-build.properties"
 
-build_default() {
-	local key="$1" value
-	value="$(awk -F= -v key="$key" '$1 == key { print substr($0, index($0, "=") + 1); exit }' "$BUILD_DEFAULTS")"
-	[[ -n "$value" ]] || { echo "error: missing $key in $BUILD_DEFAULTS" >&2; return 1; }
-	printf '%s' "$value"
-}
-
 VC="${VC:?set VC=<versionCode>}"
 VN="${VN:?set VN=<versionName>}"
-PKG="${PKG:-$(build_default playApplicationId)}"
+PKG="${PKG:-$(android_build_default "$BUILD_DEFAULTS" playApplicationId)}"
 PROF="${PROF:-$HOME/Downloads/armsx2.profdata}"
 # Read the canonical NDK version from android-build.properties so the Play and
 # sideload builds use the same toolchain as the PGO profile.
-NDK="${NDK:-$(build_default ndkVersion)}"
+NDK="${NDK:-$(android_build_default "$BUILD_DEFAULTS" ndkVersion)}"
 OUTPUT_AAB="${1:-$HOME/Downloads/ARMSX2-${VN}-play-vc${VC}-dualcore.aab}"
 
 if [[ -z "${JAVA_HOME:-}" && -d "/Applications/Android Studio.app/Contents/jbr/Contents/Home" ]]; then

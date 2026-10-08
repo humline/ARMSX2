@@ -51,7 +51,8 @@ val armsx2MarchExtra = providers.gradleProperty("armsx2.marchExtra").orElse("")
 // DIAGNOSTIC ONLY (-Parmsx2.recTestHooks=true): compiles the EERecFallback opcode-group
 // interpreter bisect into the EE recompiler. Never set for a shipped build.
 val armsx2RecTestHooks = providers.gradleProperty("armsx2.recTestHooks").orElse("false")
-val armsx2ApplicationId = providers.gradleProperty("armsx2.applicationId").orElse("com.armsx2")
+val armsx2ApplicationId = providers.gradleProperty("armsx2.applicationId")
+    .orElse(armsx2AndroidBuildDefault("githubApplicationId"))
 // Distribution channel, baked into BuildConfig so the app knows which release stream it belongs to
 // without guessing from the version string. "nightly" builds ship a distinct applicationId and
 // label (see ci-nightly-dualcore.sh) so they install alongside the stable app instead of replacing
