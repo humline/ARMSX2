@@ -148,7 +148,7 @@ done
 	--security-opt no-new-privileges \
 	--cap-drop ALL \
 	--read-only \
-	--tmpfs "/android-sdk:rw,nosuid,nodev,size=$ANDROID_SDK_TMPFS_SIZE" \
+	--tmpfs "/android-sdk:rw,nosuid,nodev,uid=$(id -u),gid=$(id -g),size=$ANDROID_SDK_TMPFS_SIZE" \
 	--env ANDROID_HOME=/android-sdk \
 	--env ANDROID_SDK_ROOT=/android-sdk \
 	--env GRADLE_USER_HOME=/gradle \
